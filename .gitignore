@@ -52,3 +52,14 @@ CATKIN_IGNORE
 
 # VsCode 配置文件
 .vscode
+
+# clangd 缓存文件
+.cache
+
+# colcon build 产生的文件
+build
+install
+log
+
+# compile_commands.json 链接文件
+compile_commands.json
