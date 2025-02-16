@@ -1,0 +1,3 @@
+[submodule "docs/git_commit_style"]
+	path = docs/git_commit_style
+	url = git@github.com:bfmhno3/git_commit_style.git
