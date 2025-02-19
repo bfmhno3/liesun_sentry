@@ -47,6 +47,25 @@ namespace liesun {
 namespace sentry {
 namespace lidar_mapping {
 
+/**
+ * @brief 车轮里程计节点。
+ *
+ * 该类用于融合轮子状态信息和 IMU 数据，通过 ROS2 节点订阅、数据同步以及计算流程，
+ * 实现机器人的位置、姿态以及速度的估计。其主要功能包括：
+ * - 初始化相关参数配置（轮子半径、底盘半径、tf2 坐标系标识等）。
+ * - 单独或同步接收轮子编码器数据（JointState）与 IMU 数据，
+ *   并通过回调函数分别更新数据状态。
+ * - 基于传感器数据计算机器人的里程计（Odometry），获取位置信息 (x, y, 偏航角)
+ *   与速度信息（线速度与角速度）。
+ * - 发布 nav_msgs::msg::Odometry 消息到指定话题。
+ * - 根据需要广播 tf2 坐标变换。
+ *
+ * 同步策略：
+ * 采用 message_filters::sync_policies::ApproximateTime 策略对 JointState 与 IMU 数据进行同步，
+ * 确保数据在不同传感器采样频率情况下的合理匹配。
+ *
+ * @note 该节点是针对轮式机器人设计的里程计计算模块，适用于同时具备轮子编码器与 IMU 的硬件平台。
+ */
 class WheelOdometry : public rclcpp::Node {
 private:
     using SyncPolicyJointStateImu =

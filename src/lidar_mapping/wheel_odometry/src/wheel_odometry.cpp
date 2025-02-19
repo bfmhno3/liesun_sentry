@@ -46,6 +46,13 @@
 using liesun::sentry::lidar_mapping::WheelOdometry;
 using namespace std::chrono_literals;
 
+/**
+ * @brief 构造函数
+ * 
+ * @param node_name: WheelOdometry 节点在 ROS2 系统中的名称
+ * @param wheel_radius: 底盘轮子半径
+ * @param chasis_radius: 底盘半径
+ */
 WheelOdometry::WheelOdometry(std::string node_name, const double wheel_radius, const double chasis_radius)
     : Node(node_name)
     , wheel_radius_(wheel_radius)
@@ -82,10 +89,18 @@ WheelOdometry::WheelOdometry(std::string node_name, const double wheel_radius, c
         }
     }
 
+/**
+ * @brief 析构函数
+ * 
+ */
 WheelOdometry::~WheelOdometry() {
     RCLCPP_INFO(this->get_logger(), "Destroying WheelOdometry node.");
 }
 
+/**
+ * @brief 从 ROS2 参数系统获取配置信息，自动配置 WheelOdometry 的行为
+ * 
+ */
 void WheelOdometry::init_parameters() {
     this->declare_parameter<std::string>("odometry.frame_id");
     this->declare_parameter<std::string>("odometry.child_frame_id");
@@ -99,6 +114,11 @@ void WheelOdometry::init_parameters() {
     this->get_parameter_or<bool>("odometry.if_publish_tf", if_publish_tf_, false);
 }
 
+/**
+ * @brief 回调函数，接收到 sensor_msgs::msg::JointState 消息后，ROS2 系统自动调用
+ * 
+ * @param[in] joint_state_msg
+ */
 void WheelOdometry::joint_state_callback(sensor_msgs::msg::JointState::ConstSharedPtr joint_state_msg) {
     const rclcpp::Time current_time = joint_state_msg->header.stamp;
     static rclcpp::Time last_time = current_time;
@@ -111,6 +131,12 @@ void WheelOdometry::joint_state_callback(sensor_msgs::msg::JointState::ConstShar
     last_time = current_time;
 }
 
+/**
+ * @brief 回调函数，ROS2 系统检测到同步的消息自动调用
+ * 
+ * @param[in] joint_state_msg 
+ * @param[in] imu_msg 
+ */
 void WheelOdometry::joint_state_and_imu_callback(const sensor_msgs::msg::JointState::ConstSharedPtr joint_state_msg,
                                                  const sensor_msgs::msg::Imu::ConstSharedPtr imu_msg) {
     RCLCPP_DEBUG(
@@ -132,6 +158,11 @@ void WheelOdometry::joint_state_and_imu_callback(const sensor_msgs::msg::JointSt
     last_time = current_time;
 }
 
+/**
+ * @brief 更新偏航角 yaw
+ * 
+ * @param[in] imu_msg: IMU 消息
+ */
 void WheelOdometry::update_imu(sensor_msgs::msg::Imu::ConstSharedPtr imu_msg) {
     double qx = imu_msg->orientation.x;
     double qy = imu_msg->orientation.y;
@@ -140,6 +171,11 @@ void WheelOdometry::update_imu(sensor_msgs::msg::Imu::ConstSharedPtr imu_msg) {
     imu_yaw_angle_ = ::atan2f(qx * qy + qw * qz, 0.5f - qy * qy - qz * qz);
 }
 
+/**
+ * @brief 更新底盘轮子状态信息，计算轮子在时间间隔中旋转的角度
+ * 
+ * @param[in] joint_state_msg: 底盘轮子消息
+ */
 void WheelOdometry::update_joint_state(sensor_msgs::msg::JointState::ConstSharedPtr joint_state_msg) {
     static std::array<double, 4> last_wheel_joint_positions = {0.0f, 0.0f, 0.0f, 0.0f};
 
@@ -154,7 +190,27 @@ void WheelOdometry::update_joint_state(sensor_msgs::msg::JointState::ConstShared
     last_wheel_joint_positions[3] = joint_state_msg->position[3];
 }
 
+/**
+ * @brief 根据车轮关节角度及 IMU数据（可选）计算轮式里程计
+ *
+ * 此函数基于车轮角度差及可选的 IMU 数据计算机器人位姿和速度的变化。
+ * 支持两种计算方式：
+ *   1.使用IMU数据更新偏航角（当if_use_imu_为true时）；
+ *   2.直接根据车轮转动计算偏航角
+ *
+ * @param[in] duration : 表示计算里程计的时间间隔，用于速度计算。
+ * @return 若时间间隔为零（delta_t == 0）则返回false，否则返回true，表示成功计算出里程计信息。
+ *
+ * @note 当 if_use_imu_ 为 false 时，只使用底盘数据计算里程计数据。
+ */
 bool WheelOdometry::calculate_odometry(const rclcpp::Duration& duration) {
+
+    /*
+     * 轮子的定义：wheel_<象限>
+     * 哨兵底盘坐标系定义：使用 ROS2 规定的右手系：x 轴为前进的方向，y 轴为与 x 轴垂直的左方，z 轴垂直于 xOy 平面向上。
+     * 象限的定义：xy 表示由 x 和 y 轴的正半轴所夹象限（第一象限），nxy 表示由 x 轴负半轴和 y 轴正半轴所夹象限（第二象限），以此类推。
+     * 正常来说，第一象限的轮子的
+     */
     double wheel_xy = diff_wheel_joint_positions_[0];
     double wheel_nxy = diff_wheel_joint_positions_[1];
     double wheel_nxny = diff_wheel_joint_positions_[2];
@@ -201,6 +257,7 @@ bool WheelOdometry::calculate_odometry(const rclcpp::Duration& duration) {
     sin_positive = cos_negative;
     sin_negative = cos_positive;
 
+    // 计算公式基于底盘运动学模型，查看文档
     delta_x_x = wheel_xy * cos_positive - wheel_nxy * cos_negative - wheel_nxny * cos_positive + wheel_xny * cos_negative;
     delta_x_y = wheel_xy * sin_positive + wheel_nxy * sin_negative - wheel_nxny * sin_positive - wheel_xny * sin_negative;
     robot_pose_[0] += delta_x_x;
@@ -220,6 +277,11 @@ bool WheelOdometry::calculate_odometry(const rclcpp::Duration& duration) {
     return true;
 }
 
+/**
+ * @brief 发布里程计消息和 tf2 转换
+ * 
+ * @param[in] now: 当前时间戳， 用于设置消息的时间戳
+ */
 void WheelOdometry::publish(const rclcpp::Time& now) const {
     auto odom_msg = std::make_unique<nav_msgs::msg::Odometry>();
 
@@ -232,7 +294,7 @@ void WheelOdometry::publish(const rclcpp::Time& now) const {
     odom_msg->pose.pose.position.z = robot_pose_[2];
 
     tf2::Quaternion q;
-    q.setRPY(0.0, 0.0, robot_pose_[2]);
+    q.setRPY(0.0, 0.0, robot_pose_[2]); // 机器人受到地面约束，只有偏航角 yaw
 
     odom_msg->pose.pose.orientation.x = q.x();
     odom_msg->pose.pose.orientation.y = q.y();
@@ -243,6 +305,7 @@ void WheelOdometry::publish(const rclcpp::Time& now) const {
     odom_msg->twist.twist.linear.y = robot_vel_[1];
     odom_msg->twist.twist.angular.z = robot_vel_[2];
 
+    // 发布 tf2 变换
     geometry_msgs::msg::TransformStamped odom_tf;
 
     odom_tf.transform.translation.x = odom_msg->pose.pose.position.x;
@@ -262,6 +325,11 @@ void WheelOdometry::publish(const rclcpp::Time& now) const {
     }
 }
 
+/**
+ * @brief 将 NaN 修改为 0.0
+ * 
+ * @param[out] value: 需要设置的值
+ */
 void WheelOdometry::set_nan_to_zero(double& value) {
     if (std::isnan(value)) {
         value = 0.0f;
