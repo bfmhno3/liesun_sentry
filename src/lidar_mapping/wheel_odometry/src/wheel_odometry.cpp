@@ -110,7 +110,7 @@ void WheelOdometry::init_parameters() {
     this->get_parameter_or<std::string>("odometry.frame_id", frame_id_of_odometry_, std::string("odom"));
     this->get_parameter_or<std::string>(
         "odometry.child_frame_id", child_frame_id_of_odometry_, std::string("base_footprint"));
-    this->get_parameter_or<bool>("odometry.if_use_imd", if_use_imu_, false);
+    this->get_parameter_or<bool>("odometry.if_use_imu", if_use_imu_, false);
     this->get_parameter_or<bool>("odometry.if_publish_tf", if_publish_tf_, false);
 }
 
