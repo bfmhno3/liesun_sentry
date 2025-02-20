@@ -47,7 +47,7 @@ set(EXECUTABLE_NAME "wheel_odometry")
 add_executable(${EXECUTABLE_NAME} src/main.cpp src/wheel_odometry.cpp)
 ament_target_dependencies(${EXECUTABLE_NAME} ${DEPENDENCIES})
 
-install(DIRECTORY param
+install(DIRECTORY param launch
   DESTINATION share/${PROJETCT_NAME}
 )
 
