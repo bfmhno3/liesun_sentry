@@ -72,7 +72,7 @@ private:
         message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::JointState, sensor_msgs::msg::Imu>;
     using SynchronizerJointStateImu = message_filters::Synchronizer<SyncPolicyJointStateImu>;
 public:
-    explicit WheelOdometry(std::string node_name, const double wheel_radius, const double chasis_radius);
+    explicit WheelOdometry();
     ~WheelOdometry();
 
 private:

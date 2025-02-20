@@ -53,12 +53,8 @@ using namespace std::chrono_literals;
  * @param wheel_radius: 底盘轮子半径
  * @param chasis_radius: 底盘半径
  */
-WheelOdometry::WheelOdometry(std::string node_name, const double wheel_radius, const double chasis_radius)
-    : Node(node_name)
-    , wheel_radius_(wheel_radius)
-    , chasis_radius_(chasis_radius)
-    , if_use_imu_(false)
-    , if_publish_tf_(false)
+WheelOdometry::WheelOdometry()
+    : Node("wheel_odometry", rclcpp::NodeOptions())
     , imu_yaw_angle_(0.0f) {
         RCLCPP_INFO(this->get_logger(), "Init odometry");
 
@@ -102,11 +98,15 @@ WheelOdometry::~WheelOdometry() {
  * 
  */
 void WheelOdometry::init_parameters() {
+    this->declare_parameter<double>("wheel_radius");
+    this->declare_parameter<double>("chasis_radius");
     this->declare_parameter<std::string>("odometry.frame_id");
     this->declare_parameter<std::string>("odometry.child_frame_id");
     this->declare_parameter<bool>("odometry.if_use_imu");
     this->declare_parameter<bool>("odometry.if_publish_tf");
 
+    this->get_parameter_or<double>("wheel_radius", wheel_radius_, 0.0f);
+    this->get_parameter_or<double>("chasis_radius", chasis_radius_, 0.0f);
     this->get_parameter_or<std::string>("odometry.frame_id", frame_id_of_odometry_, std::string("odom"));
     this->get_parameter_or<std::string>(
         "odometry.child_frame_id", child_frame_id_of_odometry_, std::string("base_footprint"));
