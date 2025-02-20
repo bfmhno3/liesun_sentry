@@ -1,0 +1,11 @@
+wheel_odometry:
+    ros__parameters:
+        wheel_radius: 0.1 # 轮子半径，单位: m
+        chasis_radius: 0.2 # 底盘半径，单位: m
+        if_use_imu: false # 是否使用 IMU 的偏航角
+        if_publish_tf: true # 是否发布从 framd_id 到 child_frame_id 的 tf2 变换
+
+        # 这两个 ID 同时设置了 tf2 变换的坐标系
+        odometry:
+            frame_id: "odom" # 发布的的 nav_msgs::msg::Odometry 消息的坐标系 ID
+            child_frame_id: "base_footprint" # 自坐标系 ID
