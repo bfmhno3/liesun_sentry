@@ -7,6 +7,9 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -22,5 +25,25 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+include_directories(
+  include
+  ${BOOST_INCLUDE_DIRS}
+)
+
+set(DEPENDENCIES
+  "rclcpp"
+  "sensor_msgs"
+)
+
+set(EXECUTABLE_NAME "pc_stm32_comm")
+
+add_executable(${EXECUTABLE_NAME} src/main.cpp)
+target_link_libraries(${EXECUTABLE_NAME} ${Boost_LIBRARIES})
+ament_target_dependencies(${EXECUTABLE_NAME} ${DEPENDENCIES})
+
+install(TARGETS ${EXECUTABLE_NAME}
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 ament_package()
